@@ -3,8 +3,14 @@ import db from '../db/database';
 import { getAllProjects } from '../db/projects';
 import { subDays, format } from 'date-fns';
 
-// Get API key from settings
+// Get API key from environment variable (production) or settings (development)
 const getApiKey = async () => {
+  // In production (Vercel), use environment variable
+  if (process.env.REACT_APP_ANTHROPIC_API_KEY) {
+    return process.env.REACT_APP_ANTHROPIC_API_KEY;
+  }
+  
+  // In development, fall back to settings
   const settings = await db.settings.get('user_settings');
   return settings?.ai?.apiKey || null;
 };

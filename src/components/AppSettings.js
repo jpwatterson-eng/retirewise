@@ -9,6 +9,10 @@ const Settings = () => {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  // Check if API key is configured via environment variable
+  const isApiKeyConfigured = !!process.env.REACT_APP_ANTHROPIC_API_KEY;
+  const isDevelopment = process.env.NODE_ENV === 'development';
+
   useEffect(() => {
     loadSettings();
   }, []);
@@ -193,56 +197,71 @@ const Settings = () => {
     <div className="space-y-6 pb-20">
       <h1 className="text-2xl font-bold text-gray-800">Settings</h1>
 
-      {/* API Key Section */}
-      <div className="bg-white rounded-xl p-6 shadow-sm">
-        <div className="flex items-center gap-2 mb-4">
-          <Key className="w-5 h-5 text-blue-600" />
-          <h2 className="text-lg font-bold text-gray-800">Claude API Key</h2>
-        </div>
-        
-        <p className="text-sm text-gray-600 mb-4">
-          Your API key is stored locally and never leaves your device. Get your key from{' '}
-          <a 
-            href="https://console.anthropic.com/settings/keys" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-blue-600 hover:underline"
-          >
-            console.anthropic.com
-          </a>
-        </p>
-
-        <div className="space-y-3">
-          <div className="flex gap-2">
-            <input
-              type={showApiKey ? 'text' : 'password'}
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="sk-ant-api03-..."
-              className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-            />
-            <button
-              onClick={() => setShowApiKey(!showApiKey)}
-              className="p-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
-            >
-              {showApiKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-            </button>
+      {/* API Key Section - Only show in development or if not configured */}
+      {(isDevelopment && !isApiKeyConfigured) && (
+        <div className="bg-white rounded-xl p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <Key className="w-5 h-5 text-blue-600" />
+            <h2 className="text-lg font-bold text-gray-800">Claude API Key</h2>
           </div>
           
-          <button
-            onClick={handleSaveApiKey}
-            disabled={saving || !apiKey || apiKey === '••••••••••••••••'}
-            className="w-full px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {saving ? 'Saving...' : saveSuccess ? (
-              <>
-                <Check className="w-5 h-5" />
-                Saved!
-              </>
-            ) : 'Save API Key'}
-          </button>
+          <p className="text-sm text-gray-600 mb-4">
+            Your API key is stored locally and never leaves your device. Get your key from{' '}
+            <a 
+              href="https://console.anthropic.com/settings/keys" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline"
+            >
+              console.anthropic.com
+            </a>
+          </p>
+
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <input
+                type={showApiKey ? 'text' : 'password'}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="sk-ant-api03-..."
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+              />
+              <button
+                onClick={() => setShowApiKey(!showApiKey)}
+                className="p-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
+              >
+                {showApiKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+            
+            <button
+              onClick={handleSaveApiKey}
+              disabled={saving || !apiKey || apiKey === '••••••••••••••••'}
+              className="w-full px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {saving ? 'Saving...' : saveSuccess ? (
+                <>
+                  <Check className="w-5 h-5" />
+                  Saved!
+                </>
+              ) : 'Save API Key'}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* API Key Status - Show in production */}
+      {isApiKeyConfigured && (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+          <div className="flex items-center gap-2 text-green-800">
+            <Check className="w-5 h-5" />
+            <p className="font-medium">API Key Configured</p>
+          </div>
+          <p className="text-sm text-green-700 mt-1">
+            Your AI features are enabled and ready to use.
+          </p>
+        </div>
+      )}
 
       {/* Notifications */}
       <div className="bg-white rounded-xl p-6 shadow-sm">
