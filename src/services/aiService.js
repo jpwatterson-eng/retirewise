@@ -366,19 +366,21 @@ You have access to tools that let you retrieve their actual data. Use these tool
 Keep responses conversational and concise (2-3 paragraphs max unless asked for more detail).`;
 
     // First API call - may result in tool use
-    console.log('🤖 Calling Claude API via proxy...');
-    const response = await fetch('http://localhost:3001/api/chat', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        apiKey: apiKey,
-        messages: messages,
-        tools: AGENTIC_TOOLS,
-        system: systemPrompt
-      })
-    });
+const response = await fetch('https://api.anthropic.com/v1/messages', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': apiKey,
+    'anthropic-version': '2023-06-01'
+  },
+  body: JSON.stringify({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 4096,
+    messages: messages,
+    tools: AGENTIC_TOOLS,
+    system: systemPrompt
+  })
+});
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -419,21 +421,24 @@ Keep responses conversational and concise (2-3 paragraphs max unless asked for m
       
       // Second API call with tool results
       console.log('🤖 Calling Claude API via proxy with tool results...');
-      const finalResponse = await fetch('http://localhost:3001/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          apiKey: apiKey,
-          messages: [
-            ...messages,
-            assistantMessage,
-            userMessage
-          ],
-          system: systemPrompt
-        })
-      });
+const finalResponse = await fetch('https://api.anthropic.com/v1/messages', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': apiKey,
+    'anthropic-version': '2023-06-01'
+  },
+  body: JSON.stringify({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 4096,
+    messages: [
+      ...messages,
+      assistantMessage,
+      userMessage
+    ],
+    system: systemPrompt
+  })
+});
 
       if (!finalResponse.ok) {
         const errorData = await finalResponse.json();
