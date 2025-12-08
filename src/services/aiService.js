@@ -367,16 +367,20 @@ Keep responses conversational and concise (2-3 paragraphs max unless asked for m
 
     // First API call - may result in tool use
     console.log('🤖 Calling Claude API...');
-const response = await fetch('https://api.anthropic.com/v1/messages', {
+
+
+// Determine API endpoint
+const API_ENDPOINT = process.env.NODE_ENV === 'development'
+  ? 'http://localhost:3001/api/chat'  // Your local proxy
+  : '/api/chat';  // Vercel serverless function
+
+// First API call
+const response = await fetch(API_ENDPOINT, {
   method: 'POST',
   headers: {
-    'Content-Type': 'application/json',
-    'x-api-key': apiKey,
-    'anthropic-version': '2023-06-01'
+    'Content-Type': 'application/json'
   },
   body: JSON.stringify({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 4096,
     messages: messages,
     tools: AGENTIC_TOOLS,
     system: systemPrompt
@@ -422,16 +426,14 @@ const response = await fetch('https://api.anthropic.com/v1/messages', {
       
       // Second API call with tool results
       console.log('🤖 Calling Claude API with tool results...');
-const finalResponse = await fetch('https://api.anthropic.com/v1/messages', {
+
+// Second API call (similar change)
+const finalResponse = await fetch(API_ENDPOINT, {
   method: 'POST',
   headers: {
-    'Content-Type': 'application/json',
-    'x-api-key': apiKey,
-    'anthropic-version': '2023-06-01'
+    'Content-Type': 'application/json'
   },
   body: JSON.stringify({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 4096,
     messages: [
       ...messages,
       assistantMessage,
