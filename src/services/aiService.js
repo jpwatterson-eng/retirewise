@@ -366,6 +366,7 @@ You have access to tools that let you retrieve their actual data. Use these tool
 Keep responses conversational and concise (2-3 paragraphs max unless asked for more detail).`;
 
     // First API call - may result in tool use
+    console.log('🤖 Calling Claude API...');
 const response = await fetch('https://api.anthropic.com/v1/messages', {
   method: 'POST',
   headers: {
@@ -420,7 +421,7 @@ const response = await fetch('https://api.anthropic.com/v1/messages', {
       };
       
       // Second API call with tool results
-      console.log('🤖 Calling Claude API via proxy with tool results...');
+      console.log('🤖 Calling Claude API with tool results...');
 const finalResponse = await fetch('https://api.anthropic.com/v1/messages', {
   method: 'POST',
   headers: {
