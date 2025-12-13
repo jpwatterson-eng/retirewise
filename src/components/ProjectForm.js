@@ -1,7 +1,8 @@
 // src/components/ProjectForm.js
 import React, { useState, useEffect } from 'react';
 import { X, Plus } from 'lucide-react';
-import { createProject, updateProject } from '../db/projects';
+// import { createProject, updateProject } from '../db/projects';
+import * as unifiedDB from '../db/unifiedDB';
 
 const ProjectForm = ({ project, onClose, onSaved }) => {
   const isEdit = !!project;
@@ -89,10 +90,13 @@ const ProjectForm = ({ project, onClose, onSaved }) => {
       };
 
       if (isEdit) {
-        await updateProject(project.id, projectData);
+        await unifiedDB.updateProject(project.id, projectData);
       } else {
-        await createProject(projectData);
+        await unifiedDB.createProject(projectData);
       }
+      
+      // Dispatch event
+      window.dispatchEvent(new Event('projectUpdated'));
 
       onSaved();
       onClose();

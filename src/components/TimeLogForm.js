@@ -1,8 +1,7 @@
 // src/components/TimeLogForm.js
 import React, { useState, useEffect } from 'react';
 import { X, Clock, Calendar, Zap, TrendingUp, Smile } from 'lucide-react';
-import { createTimeLog, updateTimeLog } from '../db/timeLogs';
-import { getAllProjects } from '../db/projects';
+import * as unifiedDB from '../db/unifiedDB';
 import { format } from 'date-fns';
 
 const TimeLogForm = ({ log, onClose, onSaved, preselectedProjectId = null }) => {
@@ -44,7 +43,7 @@ const TimeLogForm = ({ log, onClose, onSaved, preselectedProjectId = null }) => 
   }, [log]);
 
   const loadProjects = async () => {
-    const allProjects = await getAllProjects();
+    const allProjects = await unifiedDB.getAllProjects();
     setProjects(allProjects);
   };
 
@@ -66,9 +65,9 @@ const TimeLogForm = ({ log, onClose, onSaved, preselectedProjectId = null }) => 
       };
 
       if (isEdit) {
-        await updateTimeLog(log.id, logData);
+        await unifiedDB.updateTimeLog(log.id, logData);
       } else {
-        await createTimeLog(logData);
+        await unifiedDB.createTimeLog(logData);
       }
 
       onSaved();

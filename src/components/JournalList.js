@@ -1,7 +1,8 @@
 // src/components/JournalList.js
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Star, Calendar, Tag, Trash2, Edit2, Eye } from 'lucide-react';
-import { getAllJournalEntries, deleteJournalEntry, getJournalStats } from '../db/journal';
+import * as unifiedDB from '../db/unifiedDB';
+import { getJournalStats } from '../db/journal';
 import { getAllProjects } from '../db/projects';
 import { format } from 'date-fns';
 import JournalEntryForm from './JournalEntryForm';
@@ -32,8 +33,8 @@ const JournalList = () => {
   const loadData = async () => {
     try {
       const [allEntries, allProjects, journalStats] = await Promise.all([
-        getAllJournalEntries(),
-        getAllProjects(),
+        unifiedDB.getAllJournalEntries(),
+        unifiedDB.getAllProjects(),
         getJournalStats()
       ]);
       
@@ -81,7 +82,7 @@ const JournalList = () => {
     if (!window.confirm('Delete this journal entry? This cannot be undone.')) return;
     
     try {
-      await deleteJournalEntry(entryId);
+      await unifiedDB.deleteJournalEntry(entryId);
       await loadData();
     } catch (error) {
       console.error('Error deleting entry:', error);

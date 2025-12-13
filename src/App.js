@@ -1,11 +1,15 @@
 // src/App.js
 import React, { useState, useEffect } from 'react';
-import { Home, MessageSquare, BookOpen, BarChart3, Settings, Plus, Clock } from 'lucide-react';
+import { Home, MessageSquare, BookOpen, BarChart3, Settings, Plus, FolderOpen } from 'lucide-react';
 import { Lightbulb } from 'lucide-react';
-import db from './db/database';
-import { getActiveProjects } from './db/projects';
-import { getTodayTimeLogs } from './db/timeLogs';
+import { useAuth } from './contexts/AuthContext';
+import AuthScreen from './components/Auth/AuthScreen';
+// import db from './db/database';
+
+import * as unifiedDB from './db/unifiedDB';
+
 import { getActiveInsights } from './db/insights';
+
 import ProjectDetails from './components/ProjectDetails';
 import ProjectForm from './components/ProjectForm';
 import AIChat from './components/AIChat';
@@ -16,8 +20,13 @@ import AppSettings from './components/AppSettings';
 import './index.css';
 import InsightsPanel from './components/InsightsPanel';
 import TimeLogsView from './components/TimeLogsView';
+import ProjectsListView from './components/ProjectsListView';
+import { setJournalUserId } from './db/journal';
+
 
 function App() {
+  const { currentUser } = useAuth();
+ 
   const [currentScreen, setCurrentScreen] = useState('home');
   const [projects, setProjects] = useState([]);
   const [todayHours, setTodayHours] = useState(0);
@@ -30,52 +39,48 @@ function App() {
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
 
-  useEffect(() => {
-    loadData();
-  
-    // Listen for time log additions
-    const handleTimeLogAdded = () => loadData();
-    window.addEventListener('timeLogAdded', handleTimeLogAdded);
-  
-    // Listen for navigation to time logs
-    const handleNavigateToTimeLogs = () => setCurrentScreen('timelogs');
-    window.addEventListener('navigateToTimeLogs', handleNavigateToTimeLogs);
-  
-    return () => {
-      window.removeEventListener('timeLogAdded', handleTimeLogAdded);
-      window.removeEventListener('navigateToTimeLogs', handleNavigateToTimeLogs);
-    };
-  }, []);
-
-const loadData = async () => {
-  try {
-    const [activeProjects, todayLogs] = await Promise.all([
-      getActiveProjects(),
-      getTodayTimeLogs()
-    ]);
-    
-    const totalToday = todayLogs.reduce((sum, log) => sum + log.duration, 0);
-    
-    setProjects(activeProjects);
-    setTodayHours(totalToday);
-    
-    // Load insights separately with error handling
+  const loadData = async () => {
     try {
-      const insights = await getActiveInsights();
-      setTopInsights(insights.slice(0, 2));
-    } catch (insightError) {
-      console.error('Error loading insights:', insightError);
-      setTopInsights([]); // Set empty array if insights fail
-    }
+      const allProjects = await unifiedDB.getAllProjects();
+      // Show active and planning projects on home
+      const visibleProjects = allProjects.filter(p => 
+        p.status === 'active' || p.status === 'planning'
+      );
+      setProjects(visibleProjects);
+      
+//      const [activeProjects, todayLogs] = await Promise.all([
+//      unifiedDB.getActiveProjects(),  // Changed
+//      unifiedDB.getTodayTimeLogs()    // Changed
+//      ]);
+
+      const todayLogs = await unifiedDB.getTodayTimeLogs();
+
+      const totalToday = todayLogs.reduce((sum, log) => sum + log.duration, 0);
     
-    setLoading(false);
-  } catch (error) {
-    console.error('Error loading data:', error);
-    setLoading(false);
-  }
-};
+//      setProjects(activeProjects);
+      setTodayHours(totalToday);
+    
+      // Load insights separately with error handling
+      try {
+        const insights = await getActiveInsights();
+        setTopInsights(insights.slice(0, 2));
+      } catch (insightError) {
+        console.error('Error loading insights:', insightError);
+        setTopInsights([]); // Set empty array if insights fail
+      }
+    
+      setLoading(false);
+    } catch (error) {
+        console.error('Error loading data:', error);
+        setLoading(false);
+    }
+  };
 
   const handleProjectClick = (project) => {
+    
+    console.log('Project clicked: ', project);
+  console.log('handleProjectClick called:', project.name);
+  console.log('Before - showProjectDetails:', showProjectDetails);
     setSelectedProject(project);
     setShowProjectDetails(true);
   };
@@ -103,6 +108,55 @@ const loadData = async () => {
   const handleProjectDeleted = () => {
     loadData();
   };
+
+  // Set the user for unified DB
+  useEffect(() => {
+    if (currentUser) {
+      unifiedDB.setCurrentUser(currentUser.uid);
+      setJournalUserId(currentUser.uid);
+    } else {
+      unifiedDB.setCurrentUser(null);
+      setJournalUserId(null);
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (currentUser){
+      loadData();
+    }
+
+    // Listen for time log additions
+    const handleTimeLogAdded = () => loadData();
+    window.addEventListener('timeLogAdded', handleTimeLogAdded);
+  
+    // Listen for navigation to time logs
+    const handleNavigateToTimeLogs = () => setCurrentScreen('timelogs');
+    window.addEventListener('navigateToTimeLogs', handleNavigateToTimeLogs);
+  
+    return () => {
+      window.removeEventListener('timeLogAdded', handleTimeLogAdded);
+      window.removeEventListener('navigateToTimeLogs', handleNavigateToTimeLogs);
+    };
+  }, [currentUser]);
+
+  // If not logged in, show auth screen
+  if (!currentUser) {
+    return <AuthScreen />;
+  }
+
+  // If logged in but still loading data, show loading
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl mx-auto mb-4 flex items-center justify-center text-white font-bold text-2xl animate-pulse">
+            R
+          </div>
+          <p className="text-gray-600">Loading RetireWise...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Placeholder screens
   const HomeScreen = () => (
@@ -203,13 +257,13 @@ const loadData = async () => {
     </div>
   );
 
-  const PlaceholderScreen = ({ title, icon: Icon }) => (
-    <div className="flex flex-col items-center justify-center h-full text-gray-500">
-      <Icon className="w-16 h-16 mb-4 text-gray-400" />
-      <h2 className="text-xl font-semibold mb-2">{title}</h2>
-      <p className="text-sm">Coming soon...</p>
-    </div>
-  );
+//  const PlaceholderScreen = ({ title, icon: Icon }) => (
+//    <div className="flex flex-col items-center justify-center h-full text-gray-500">
+//      <Icon className="w-16 h-16 mb-4 text-gray-400" />
+//      <h2 className="text-xl font-semibold mb-2">{title}</h2>
+//      <p className="text-sm">Coming soon...</p>
+//    </div>
+//  );
 
   // Navigation items
   const navItems = [
@@ -219,18 +273,21 @@ const loadData = async () => {
     { id: 'stats', icon: BarChart3, label: 'Analytics' }
   ];
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl mx-auto mb-4 flex items-center justify-center text-white font-bold text-2xl animate-pulse">
-            R
-          </div>
-          <p className="text-gray-600">Loading RetireWise...</p>
-        </div>
-      </div>
-    );
-  }
+//  if (loading) {
+//    return (
+//      <div className="flex items-center justify-center h-screen bg-gray-50">
+//        <div className="text-center">
+//          <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl mx-auto mb-4 flex items-center justify-center text-white font-bold text-2xl animate-pulse">
+//            R
+//          </div>
+//          <p className="text-gray-600">Loading RetireWise...</p>
+//        </div>
+//      </div>
+//    );
+//  }
+
+  console.log('Modal check - showProjectDetails:', {showProjectDetails});
+  console.log('Modal check - selectedProject:', {selectedProject});
 
   return (
     <div className="flex flex-col h-screen max-w-md mx-auto bg-gray-50 relative">
@@ -246,6 +303,12 @@ const loadData = async () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setCurrentScreen('projects')}
+            className="p-2 hover:bg-gray-100 rounded-lg"
+          >
+            <FolderOpen className="w-5 h-5" />
+          </button>
           <button
             onClick={() => setCurrentScreen('insights')}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors relative"
@@ -267,16 +330,25 @@ const loadData = async () => {
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4">
         {currentScreen === 'home' && <HomeScreen />}
+
         {currentScreen === 'chat' && (
           <div className="h-full -m-4">
             <AIChat />
           </div>
+        )}
+        {currentScreen === 'projects' && (
+          <ProjectsListView
+            onProjectClick={handleProjectClick}
+            onEditProject={handleEditProject}
+            onNewProject={() => setShowProjectForm(true)}
+          />
         )}
         {currentScreen === 'journal' && <JournalList />}
         {currentScreen === 'stats' && <Analytics />}
         {currentScreen === 'insights' && <InsightsPanel />}
         {currentScreen === 'settings' && <AppSettings />}
         {currentScreen === 'timelogs' && <TimeLogsView />}
+
       </div>
 
       {/* Quick Time Log Button (only on Home screen) */}
@@ -313,6 +385,8 @@ const loadData = async () => {
       </div>
 
       {/* Modals */}
+      
+
       {showProjectDetails && selectedProject && (
         <ProjectDetails
           projectId={selectedProject.id}
@@ -321,6 +395,7 @@ const loadData = async () => {
           onDeleted={handleProjectDeleted}
         />
       )}
+
 
       {showProjectForm && (
         <ProjectForm

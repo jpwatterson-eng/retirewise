@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, Edit2, Trash2, Calendar, Filter, X, Search } from 'lucide-react';
 import db from '../db/database';
-import { getAllTimeLogs, deleteTimeLog, updateTimeLog } from '../db/timeLogs';
-import { getAllProjects } from '../db/projects';
+import * as unifiedDB from '../db/unifiedDB';
 
 const TimeLogsView = () => {
   const [timeLogs, setTimeLogs] = useState([]);
@@ -25,8 +24,8 @@ const TimeLogsView = () => {
   const loadData = async () => {
     try {
       const [logs, projs] = await Promise.all([
-        getAllTimeLogs(),
-        getAllProjects()
+        unifiedDB.getAllTimeLogs(),
+        unifiedDB.getAllProjects()
       ]);
       setTimeLogs(logs);
       setProjects(projs);
@@ -46,7 +45,7 @@ const TimeLogsView = () => {
     if (!editingLog) return;
     
     try {
-      await updateTimeLog(editingLog.id, {
+      await unifiedDB.updateTimeLog(editingLog.id, {
         projectId: editingLog.projectId,
         duration: parseFloat(editingLog.duration),
         date: editingLog.date,
@@ -68,7 +67,7 @@ const TimeLogsView = () => {
     }
     
     try {
-      await deleteTimeLog(logId);
+      await unifiedDB.deleteTimeLog(logId);
       await loadData();
     } catch (error) {
       console.error('Error deleting time log:', error);

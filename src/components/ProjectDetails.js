@@ -1,10 +1,15 @@
 // src/components/ProjectDetails.js
 import React, { useState, useEffect } from 'react';
 import { X, Edit2, Trash2, Clock, Target, TrendingUp, Calendar } from 'lucide-react';
-import { getProjectWithStats, deleteProject } from '../db/projects';
+import * as unifiedDB from '../db/unifiedDB';
+
+// import { getProjectWithStats } from '../db/projects';
 import { format } from 'date-fns';
 
 const ProjectDetails = ({ projectId, onClose, onEdit, onDeleted }) => {
+
+  console.log('## ProjectDetails RENDERING with projectId: ', projectId);
+  
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -15,8 +20,15 @@ const ProjectDetails = ({ projectId, onClose, onEdit, onDeleted }) => {
 
   const loadProject = async () => {
     try {
-      const data = await getProjectWithStats(projectId);
-      setProject(data);
+      // const projectData = await getProjectWithStats(projectId);
+      const projectData = await unifiedDB.getProject(projectId);
+
+      if (!projectData) {
+        console.error('Project not found:', projectId);
+        return;
+      }
+
+      setProject(projectData);
       setLoading(false);
     } catch (error) {
       console.error('Error loading project:', error);
@@ -25,8 +37,12 @@ const ProjectDetails = ({ projectId, onClose, onEdit, onDeleted }) => {
   };
 
   const handleDelete = async () => {
+    if (!window.confirm(`Delete "${project.name}"? This will also delete all related time logs and journal entries. This cannot be undone.`)) {
+    return;
+  }
+    
     try {
-      await deleteProject(projectId);
+      await unifiedDB.deleteProject(projectId);
       onDeleted();
       onClose();
     } catch (error) {
@@ -45,6 +61,7 @@ const ProjectDetails = ({ projectId, onClose, onEdit, onDeleted }) => {
     );
   }
 
+  
   if (!project) {
     return null;
   }

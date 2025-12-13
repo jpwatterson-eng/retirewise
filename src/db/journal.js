@@ -1,8 +1,20 @@
 // src/db/journal.js
 import db, { generateId } from './database';
 
+let currentUserId = null;
+
+export const setJournalUserId = (userId) => {
+  currentUserId = userId;
+};
+
 // Create a new journal entry
 export const createJournalEntry = async (entryData) => {
+  // If user is logged in, don't save to Dexie (Firestore handles it)  
+  if (currentUserId) {
+    console.log('⏭️ Skipping Dexie save - using Firestore');
+    return;
+  }
+    
   const entry = {
     id: generateId('journal'),
     date: entryData.date || new Date().toISOString(),

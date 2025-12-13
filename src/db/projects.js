@@ -56,6 +56,17 @@ export const getActiveProjects = async () => {
   });
 };
 
+// getProject moved from unifiedDB.js
+
+export const getProject = async (projectId) => {
+//  if (currentUserId) {
+//    return await firestoreDB.getProject(currentUserId, projectId);
+//  }
+//  return await dexieProjects.getProject(projectId);
+  return await db.projects.get(projectId);
+
+};
+
 // Update project
 export const updateProject = async (projectId, updates) => {
   await db.projects.update(projectId, {
@@ -143,5 +154,6 @@ export default {
   updateProject,
   updateProjectHours,
   deleteProject,
+  getProject,
   getProjectWithStats
 };
