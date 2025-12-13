@@ -371,11 +371,11 @@ Keep responses conversational and concise (2-3 paragraphs max unless asked for m
 
 // Determine API endpoint
 // replaced - - const API_ENDPOINT = process.env.NODE_ENV === 'development'
-// const API_ENDPOINT = process.env.NODE_ENV === 'development'
-//  ? 'http://localhost:3001/api/chat'  // Your local proxy
-//  : '/api/chat';  // Vercel serverless function
+const API_ENDPOINT = process.env.NODE_ENV === 'development'
+  ? 'http://localhost:3001/api/chat'  // Your local proxy
+  : '/api/chat';  // Vercel serverless function
 
-  const API_ENDPOINT = '/api/chat';
+//  const API_ENDPOINT = '/api/chat';
   
 // First API call
 const response = await fetch(API_ENDPOINT, {

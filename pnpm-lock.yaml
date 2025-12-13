@@ -20,6 +20,9 @@ importers:
       dexie:
         specifier: ^4.2.1
         version: 4.2.1
+      dotenv:
+        specifier: ^17.2.3
+        version: 17.2.3
       express:
         specifier: ^5.2.1
         version: 5.2.1
@@ -2638,6 +2641,10 @@ packages:
   dotenv@10.0.0:
     resolution: {integrity: sha512-rlBi9d8jpv9Sf1klPjNfFAuWDjKLwTIJJ/VxtoTwIR6hnZxcEOQCZg2oIL3MWBYw5GpUDKOEnND7LXTbIpQ03Q==}
     engines: {node: '>=10'}
+
+  dotenv@17.2.3:
+    resolution: {integrity: sha512-JVUnt+DUIzu87TABbhPmNfVdBDt18BLOWjMUFJMSi/Qqg7NTYtabbvSNJGOJ7afbRuv9D/lngizHtP7QyLQ+9w==}
+    engines: {node: '>=12'}
 
   dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
@@ -9111,6 +9118,8 @@ snapshots:
   dotenv-expand@5.1.0: {}
 
   dotenv@10.0.0: {}
+
+  dotenv@17.2.3: {}
 
   dunder-proto@1.0.1:
     dependencies:

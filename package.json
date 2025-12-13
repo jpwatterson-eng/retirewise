@@ -7,6 +7,7 @@
     "cra-template-pwa": "2.0.0",
     "date-fns": "^4.1.0",
     "dexie": "^4.2.1",
+    "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "firebase": "^12.6.0",
     "lucide-react": "^0.555.0",
@@ -21,7 +22,8 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "proxy": "node server.js"
   },
   "eslintConfig": {
     "extends": [

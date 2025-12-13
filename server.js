@@ -1,17 +1,23 @@
 // server.js
 const express = require('express');
 const cors = require('cors');
-const app = express();
+
+// const fetch = require('node-fetch');
+require('dotenv').config();
 
 // Enable CORS for all origins (development only)
+const app = express();
 app.use(cors());
 app.use(express.json());
 
 // Proxy endpoint for Claude API
 app.post('/api/chat', async (req, res) => {
   try {
-    const { apiKey, messages, tools, system } = req.body;
-
+    
+// remove apiKey from req.body
+//    const { apiKey, messages, tools, system } = req.body;
+    const apiKey = process.env.REACT_APP_ANTHROPIC_API_KEY;
+    const { messages, tools, system } = req.body;
     console.log('📨 Proxying request to Claude API...');
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {

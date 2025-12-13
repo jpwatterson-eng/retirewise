@@ -36,6 +36,50 @@ export const getProject = async (projectId) => {
   return await dexieProjects.getProject(projectId);
 };
 
+export const getProjectWithStats = async (projectId) => {
+  if (currentUserId) {
+    // Firestore version - calculate stats from time logs
+    const project = await firestoreDB.getProject(currentUserId, projectId);
+    if (!project) return null;
+    
+    const allLogs = await firestoreDB.getTimeLogs(currentUserId);
+    const projectLogs = allLogs.filter(log => log.projectId === projectId);
+    
+    // Calculate stats
+    const now = new Date();
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+    
+    const lastWeekLogs = projectLogs.filter(log => new Date(log.date) >= oneWeekAgo);
+    const previousWeekLogs = projectLogs.filter(log => {
+      const logDate = new Date(log.date);
+      return logDate >= twoWeeksAgo && logDate < oneWeekAgo;
+    });
+    
+    const lastWeekHours = lastWeekLogs.reduce((sum, log) => sum + log.duration, 0);
+    const previousWeekHours = previousWeekLogs.reduce((sum, log) => sum + log.duration, 0);
+    const weeklyChange = previousWeekHours > 0 
+      ? ((lastWeekHours - previousWeekHours) / previousWeekHours) * 100 
+      : 0;
+    
+    const stats = {
+      lastWeekHours,
+      previousWeekHours,
+      weeklyChange,
+      totalHours: project.totalHoursLogged || 0,
+      targetHours: project.targetHours || 0,
+      completionRate: project.targetHours > 0 
+        ? ((project.totalHoursLogged || 0) / project.targetHours) * 100 
+        : 0
+    };
+    
+    return { project, stats };
+  }
+  
+  // Dexie version - use existing function
+  return await dexieProjects.getProjectWithStats(projectId);
+};
+
 export const createProject = async (projectData) => {
   if (currentUserId) {
     const id = await firestoreDB.createProject(currentUserId, projectData);
@@ -226,12 +270,84 @@ export const deleteJournalEntry = async (entryId) => {
   await db.journalEntries.delete(entryId);
 };
 
+// ==================== ANALYTICS & STATS ====================
+
+export const getTimeLogStats = async () => {
+  if (currentUserId) {
+    // Firestore version - calculate stats from time logs
+    const logs = await firestoreDB.getTimeLogs(currentUserId);
+    
+    const now = new Date();
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    
+    const thisWeekLogs = logs.filter(log => new Date(log.date) >= oneWeekAgo);
+    
+    // Calculate by day
+    const byDay = { Sun: 0, Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0 };
+    logs.forEach(log => {
+      const day = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date(log.date).getDay()];
+      byDay[day] += log.duration;
+    });
+    
+    // Calculate by activity
+    const byActivity = {};
+    logs.forEach(log => {
+      if (log.activity) {
+        byActivity[log.activity] = (byActivity[log.activity] || 0) + log.duration;
+      }
+    });
+    
+    return {
+      totalHours: logs.reduce((sum, log) => sum + log.duration, 0),
+      thisWeek: thisWeekLogs.reduce((sum, log) => sum + log.duration, 0),
+      totalLogs: logs.length,
+      averageSessionLength: logs.length > 0 ? logs.reduce((sum, log) => sum + log.duration, 0) / logs.length : 0,
+      averageEnergy: logs.filter(l => l.energy).length > 0 
+        ? logs.filter(l => l.energy).reduce((sum, l) => sum + l.energy, 0) / logs.filter(l => l.energy).length 
+        : 0,
+      averageProductivity: logs.filter(l => l.productivity).length > 0
+        ? logs.filter(l => l.productivity).reduce((sum, l) => sum + l.productivity, 0) / logs.filter(l => l.productivity).length
+        : 0,
+      averageEnjoyment: logs.filter(l => l.enjoyment).length > 0
+        ? logs.filter(l => l.enjoyment).reduce((sum, l) => sum + l.enjoyment, 0) / logs.filter(l => l.enjoyment).length
+        : 0,
+      byDay,
+      byActivity
+    };
+  }
+  
+  // Dexie version
+  const dexieTimeLogs = await import('./timeLogs');
+  return await dexieTimeLogs.getTimeLogStats();
+};
+
+export const getJournalStats = async () => {
+  if (currentUserId) {
+    // Firestore version
+    const entries = await firestoreDB.getJournalEntries(currentUserId);
+    
+    const now = new Date();
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thisWeekEntries = entries.filter(e => new Date(e.createdAt) >= oneWeekAgo);
+    
+    return {
+      total: entries.length,
+      thisWeek: thisWeekEntries.length
+    };
+  }
+  
+  // Dexie version
+  const dexieJournal = await import('./journal');
+  return await dexieJournal.getJournalStats();
+};
+
 // ==================== INSIGHTS ====================
 
 export const getActiveInsights = async () => {
   if (currentUserId) {
     const insights = await firestoreDB.getInsights(currentUserId);
-    return insights.filter(i => !i.dismissed);
+    const active = insights.filter(i => !i.dismissed);
+    return active;
   }
   const db = (await import('./database')).default;
   return await db.insights
@@ -242,6 +358,73 @@ export const getActiveInsights = async () => {
     .sortBy('generatedAt');
 };
 
+export const dismissInsight = async (insightId, reason = null) => {
+  if (currentUserId) {
+    await firestoreDB.updateInsight(currentUserId, insightId, {
+      dismissed: true,
+      dismissedAt: new Date().toISOString(),
+      dismissReason: reason
+    });
+    return;
+  }
+  const db = (await import('./database')).default;
+  await db.insights.update(insightId, {
+    dismissed: true,
+    dismissedAt: new Date().toISOString(),
+    dismissReason: reason
+  });
+};
+
+export const markInsightActedOn = async (insightId) => {
+  if (currentUserId) {
+    await firestoreDB.updateInsight(currentUserId, insightId, {
+      actedOn: true,
+      actedOnAt: new Date().toISOString()
+    });
+    return;
+  }
+  const db = (await import('./database')).default;
+  await db.insights.update(insightId, {
+    actedOn: true,
+    actedOnAt: new Date().toISOString()
+  });
+};
+
+export const provideFeedback = async (insightId, feedback) => {
+  if (currentUserId) {
+    await firestoreDB.updateInsight(currentUserId, insightId, {
+      userFeedback: feedback,
+      feedbackAt: new Date().toISOString()
+    });
+    return;
+  }
+  const db = (await import('./database')).default;
+  await db.insights.update(insightId, {
+    userFeedback: feedback,
+    feedbackAt: new Date().toISOString()
+  });
+};
+
+export const generateInsights = async () => {
+  if (currentUserId) {
+    // For Firestore, use the insights generator
+    const dexieInsights = await import('./insights');
+    const newInsights = await dexieInsights.generateInsights();
+    
+    // Save to Firestore
+    const savedInsights = [];
+    for (const insight of newInsights) {
+      const id = await firestoreDB.createInsight(currentUserId, insight);
+      savedInsights.push({ id, ...insight });
+    }
+    return savedInsights;
+  }
+  
+  // Dexie version
+  const dexieInsights = await import('./insights');
+  return await dexieInsights.generateInsights();
+};
+
 export default {
   setCurrentUser,
   
@@ -249,6 +432,7 @@ export default {
   getAllProjects,
   getActiveProjects,
   getProject,
+  getProjectWithStats,
   createProject,
   updateProject,
   deleteProject,
@@ -267,6 +451,14 @@ export default {
   updateJournalEntry,
   deleteJournalEntry,
   
+  // Analytics & Stats
+  getTimeLogStats,
+  getJournalStats,
+  
   // Insights
-  getActiveInsights
+  getActiveInsights,
+  dismissInsight,
+  markInsightActedOn,
+  provideFeedback,
+  generateInsights
 };

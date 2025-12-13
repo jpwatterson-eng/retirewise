@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Lightbulb, X, CheckCircle, ThumbsUp, ThumbsDown, AlertTriangle, TrendingUp, Star, Target } from 'lucide-react';
-import { getActiveInsights, dismissInsight, markInsightActedOn, provideFeedback, generateInsights } from '../db/insights';
+import { getActiveInsights, dismissInsight, markInsightActedOn, provideFeedback, generateInsights } from '../db/unifiedDB';
 
 const InsightsPanel = () => {
   const [insights, setInsights] = useState([]);

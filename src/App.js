@@ -8,7 +8,7 @@ import AuthScreen from './components/Auth/AuthScreen';
 
 import * as unifiedDB from './db/unifiedDB';
 
-import { getActiveInsights } from './db/insights';
+import { getActiveInsights } from './db/unifiedDB';
 
 import ProjectDetails from './components/ProjectDetails';
 import ProjectForm from './components/ProjectForm';
@@ -77,15 +77,15 @@ function App() {
   };
 
   const handleProjectClick = (project) => {
-    
     console.log('Project clicked: ', project);
-  console.log('handleProjectClick called:', project.name);
-  console.log('Before - showProjectDetails:', showProjectDetails);
+    console.log('handleProjectClick called:', project.name);
+    console.log('Before - showProjectDetails:', showProjectDetails);
+
     setSelectedProject(project);
     setShowProjectDetails(true);
   };
 
-  const handleEditProject = (project) => {
+   const handleEditProject = (project) => {
     setEditingProject(project);
     setShowProjectDetails(false);
     setShowProjectForm(true);
@@ -111,6 +111,8 @@ function App() {
 
   // Set the user for unified DB
   useEffect(() => {
+      console.log('🔐 Setting user:', currentUser?.uid);
+      
     if (currentUser) {
       unifiedDB.setCurrentUser(currentUser.uid);
       setJournalUserId(currentUser.uid);

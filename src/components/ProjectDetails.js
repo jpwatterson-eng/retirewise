@@ -18,23 +18,48 @@ const ProjectDetails = ({ projectId, onClose, onEdit, onDeleted }) => {
     loadProject();
   }, [projectId]);
 
-  const loadProject = async () => {
-    try {
-      // const projectData = await getProjectWithStats(projectId);
-      const projectData = await unifiedDB.getProject(projectId);
+//  const loadProject = async () => {
+//    try {
+//      // const projectData = await getProjectWithStats(projectId);
+//      const projectData = await unifiedDB.getProjectWithStats(projectId);
+//
+//      if (!projectData) {
+//        console.error('Project not found:', projectId);
+//        return;
+//      }
+//
+//      setProject(projectData);
+//      setLoading(false);
+//    } catch (error) {
+//      console.error('Error loading project:', error);
+//      setLoading(false);
+//    }
+//  };
 
-      if (!projectData) {
-        console.error('Project not found:', projectId);
-        return;
-      }
+// In ProjectDetails.js, replace the loadProject function (around line 19-36):
 
-      setProject(projectData);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error loading project:', error);
-      setLoading(false);
+const loadProject = async () => {
+  try {
+    const result = await unifiedDB.getProjectWithStats(projectId);
+    
+    if (!result || !result.project) {
+      console.error('Project not found:', projectId);
+      return;
     }
-  };
+
+    // Merge project and stats into one object for easier access
+    const projectData = {
+      ...result.project,
+      stats: result.stats
+    };
+
+    setProject(projectData);
+    setLoading(false);
+  } catch (error) {
+    console.error('Error loading project:', error);
+    setLoading(false);
+  }
+};
 
   const handleDelete = async () => {
     if (!window.confirm(`Delete "${project.name}"? This will also delete all related time logs and journal entries. This cannot be undone.`)) {

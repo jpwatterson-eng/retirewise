@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, Clock, Target, Zap, Calendar, BarChart3, List } from 'lucide-react';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { getAllProjects } from '../db/projects';
-import { getTimeLogStats } from '../db/timeLogs';
-import { getJournalStats } from '../db/journal';
+import * as unifiedDB from '../db/unifiedDB';
+// import { getAllProjects } from '../db/projects';
+// import { getTimeLogStats } from '../db/timeLogs';
+// import { getJournalStats } from '../db/journal';
 
 const Analytics = () => {
   const [loading, setLoading] = useState(true);
@@ -23,9 +24,9 @@ const Analytics = () => {
   const loadAnalytics = async () => {
     try {
       const [allProjects, stats, jStats] = await Promise.all([
-        getAllProjects(),
-        getTimeLogStats(),
-        getJournalStats()
+        unifiedDB.getAllProjects(),
+        unifiedDB.getTimeLogStats(),
+        unifiedDB.getJournalStats()
       ]);
 
       setProjects(allProjects);
