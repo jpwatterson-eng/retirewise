@@ -1,10 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Key, Download, Upload, Trash2, AlertTriangle, Check, Eye, EyeOff, Info } from 'lucide-react';
-
 import { useAuth } from '../contexts/AuthContext';
-import { migrateAllData, checkMigrationStatus } from '../utils/migrateToFirestore';
-import { Cloud, Database, CheckCircle } from 'lucide-react';
-
 import db from '../db/database';
 
 const Settings = () => {
@@ -15,9 +11,6 @@ const Settings = () => {
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   const { currentUser } = useAuth();
-const [migrationStatus, setMigrationStatus] = useState(null);
-const [migrating, setMigrating] = useState(false);
-const [migrationResults, setMigrationResults] = useState(null);
 
   // Check if API key is configured via environment variable
   const isApiKeyConfigured = !!process.env.REACT_APP_ANTHROPIC_API_KEY;
@@ -34,69 +27,38 @@ const [migrationResults, setMigrationResults] = useState(null);
         setSettings(userSettings);
         // Don't load the actual API key for security
         setApiKey(userSettings.ai?.apiKey ? '••••••••••••••••' : '');
+      } else {
+        // No settings found, create default settings
+        const defaultSettings = {
+          id: 'user_settings',
+          notifications: {
+            dailyCheckIn: true,
+            weeklyReview: true,
+            insightAlerts: true
+          },
+          ui: {
+            theme: 'auto',
+            showPerspectiveScores: true
+          },
+          ai: {
+            apiKey: null
+          },
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        await db.settings.add(defaultSettings);
+        setSettings(defaultSettings);
       }
     } catch (error) {
       console.error('Error loading settings:', error);
+      // Set default settings even on error
+      setSettings({
+        notifications: { dailyCheckIn: true, weeklyReview: true, insightAlerts: true },
+        ui: { theme: 'auto', showPerspectiveScores: true },
+        ai: { apiKey: null }
+      });
     }
   };
-
-// Add this useEffect to check migration status on load
-useEffect(() => {
-  if (currentUser) {
-    checkMigration();
-  }
-}, [currentUser]);
-
-const checkMigration = async () => {
-  try {
-    const status = await checkMigrationStatus(currentUser.uid);
-    setMigrationStatus(status);
-  } catch (error) {
-    console.error('Error checking migration:', error);
-  }
-};
-
-// Add this migration handler function
-const handleMigration = async () => {
-  if (!currentUser) {
-    alert('You must be logged in to migrate data');
-    return;
-  }
-
-  const confirmed = window.confirm(
-    '🔄 This will copy all your local data to the cloud.\n\n' +
-    '• Your local data will NOT be deleted\n' +
-    '• This may take a few minutes\n' +
-    '• You can continue using the app during migration\n\n' +
-    'Ready to proceed?'
-  );
-
-  if (!confirmed) return;
-
-  setMigrating(true);
-  try {
-    const results = await migrateAllData(currentUser.uid);
-    setMigrationResults(results);
-    await checkMigration();
-    
-    alert(
-      `✅ Migration complete!\n\n` +
-      `📦 Projects: ${results.projects}\n` +
-      `⏰ Time Logs: ${results.timeLogs}\n` +
-      `📓 Journal Entries: ${results.journalEntries}\n` +
-      `💡 Insights: ${results.insights}\n` +
-      `💬 Conversations: ${results.conversations}\n` +
-      (results.errors.length > 0 ? `\n⚠️ Errors: ${results.errors.length}` : '')
-    );
-  } catch (error) {
-    console.error('Migration error:', error);
-    alert('❌ Migration failed: ' + error.message);
-  } finally {
-    setMigrating(false);
-  }
-};
-
-
 
   const handleSaveApiKey = async () => {
     if (!apiKey || apiKey === '••••••••••••••••') return;
@@ -331,106 +293,6 @@ const handleMigration = async () => {
         </div>
       )}
 
-{/* Cloud Sync & Migration */}
-<div className="bg-white rounded-xl p-6 shadow-sm">
-  <div className="flex items-center gap-2 mb-4">
-    <Cloud className="w-5 h-5 text-purple-600" />
-    <h2 className="text-lg font-bold text-gray-800">Cloud Sync</h2>
-  </div>
-  
-  {/* Migration Status */}
-  {migrationStatus && (
-    <div className={`mb-4 p-4 rounded-xl border ${
-      migrationStatus.hasMigrated 
-        ? 'bg-green-50 border-green-200' 
-        : 'bg-blue-50 border-blue-200'
-    }`}>
-      <div className="flex items-center gap-2">
-        {migrationStatus.hasMigrated ? (
-          <>
-            <CheckCircle className="w-5 h-5 text-green-600" />
-            <div>
-              <p className="font-medium text-green-800">Cloud sync enabled</p>
-              <p className="text-sm text-green-700 mt-1">
-                {migrationStatus.projectCount} projects synced to cloud
-              </p>
-            </div>
-          </>
-        ) : (
-          <>
-            <Database className="w-5 h-5 text-blue-600" />
-            <div>
-              <p className="font-medium text-blue-800">Local storage only</p>
-              <p className="text-sm text-blue-700 mt-1">
-                Your data is stored on this device only
-              </p>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  )}
-
-  <div className="space-y-3">
-    <div className="bg-gray-50 rounded-lg p-4">
-      <h3 className="font-semibold text-gray-800 mb-2">About Cloud Sync</h3>
-      <ul className="text-sm text-gray-600 space-y-2">
-        <li>✅ Access your data on any device</li>
-        <li>✅ Automatic backup to the cloud</li>
-        <li>✅ Real-time sync across devices</li>
-        <li>✅ Your local data remains intact</li>
-      </ul>
-    </div>
-
-    {!migrationStatus?.hasMigrated ? (
-      <button
-        onClick={handleMigration}
-        disabled={migrating}
-        className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {migrating ? (
-          <>
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            Migrating to Cloud...
-          </>
-        ) : (
-          <>
-            <Cloud className="w-5 h-5" />
-            Enable Cloud Sync
-          </>
-        )}
-      </button>
-    ) : (
-      <button
-        onClick={handleMigration}
-        disabled={migrating}
-        className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        <Cloud className="w-5 h-5" />
-        Re-sync All Data
-      </button>
-    )}
-
-    {migrationResults && (
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p className="font-medium text-blue-900 mb-2">Last Migration:</p>
-        <div className="text-sm text-blue-800 space-y-1">
-          <p>📦 Projects: {migrationResults.projects}</p>
-          <p>⏰ Time Logs: {migrationResults.timeLogs}</p>
-          <p>📓 Journal Entries: {migrationResults.journalEntries}</p>
-          <p>💡 Insights: {migrationResults.insights}</p>
-          <p>💬 Conversations: {migrationResults.conversations}</p>
-          {migrationResults.errors.length > 0 && (
-            <p className="text-red-600 mt-2">
-              ⚠️ {migrationResults.errors.length} errors occurred
-            </p>
-          )}
-        </div>
-      </div>
-    )}
-  </div>
-</div>
-
       {/* Notifications */}
       <div className="bg-white rounded-xl p-6 shadow-sm">
         <h2 className="text-lg font-bold text-gray-800 mb-4">Notifications</h2>
@@ -530,10 +392,10 @@ const handleMigration = async () => {
               className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-medium"
             >
               <Trash2 className="w-5 h-5" />
-              Clear All Data
+              Clear All Local Data
             </button>
             <p className="text-xs text-red-600 text-center mt-2">
-              ⚠️ This action cannot be undone
+              ⚠️ This only clears local storage, not cloud data
             </p>
           </div>
         </div>
@@ -549,18 +411,21 @@ const handleMigration = async () => {
         <div className="space-y-2 text-sm text-gray-600">
           <p><strong>Version:</strong> 1.0.0 MVP</p>
           <p><strong>Built:</strong> December 2024</p>
-          <p><strong>Database:</strong> IndexedDB (Local-First)</p>
+          <p><strong>Storage:</strong> Firebase Firestore (Cloud)</p>
           <p><strong>AI Model:</strong> Claude Sonnet 4</p>
           <p className="pt-3 border-t border-gray-200">
-            Your intelligent retirement portfolio advisor. All data is stored locally on your device.
+            Your intelligent retirement portfolio advisor. Data syncs across all your devices via the cloud.
           </p>
         </div>
       </div>
 
       {/* Storage Info */}
-      <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-600">
-        <p className="font-medium mb-2">💾 Local Storage</p>
-        <p>All your data is stored securely on your device using IndexedDB. No data is sent to external servers except when you use the AI chat feature, which communicates with Claude API using your API key.</p>
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
+        <p className="font-medium mb-2">☁️ Cloud Storage</p>
+        <p>
+          Your data is securely stored in Firebase Firestore and syncs automatically across all your devices. 
+          When you use AI chat features, messages are sent to Claude API via a secure proxy server.
+        </p>
       </div>
     </div>
   );
