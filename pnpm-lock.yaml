@@ -75,9 +75,6 @@ importers:
       babel-plugin-polyfill-corejs2:
         specifier: ^0.4.14
         version: 0.4.14(@babel/core@7.28.5)
-      eslint:
-        specifier: ^8.57.1
-        version: 8.57.1
       postcss:
         specifier: ^8.5.6
         version: 8.5.6
