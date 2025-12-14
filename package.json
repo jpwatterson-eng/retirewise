@@ -8,6 +8,7 @@
   },
   "pnpm": {
     "overrides": {
+      "eslint": "8.57.1",
       "eslint-config-react-app": "7.0.1"
     },
     "onlyBuiltDependencies": [
